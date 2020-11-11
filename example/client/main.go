@@ -7,9 +7,10 @@ import (
 	"net/http"
 	"sync"
 
-	quic "github.com/lucas-clemente/quic-go"
+	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/h2quic"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
+	"github.com/lucas-clemente/quic-go/internal/testdata"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
 
@@ -35,7 +36,8 @@ func main() {
 	}
 
 	roundTripper := &h2quic.RoundTripper{
-		QuicConfig: &quic.Config{Versions: versions},
+		QuicConfig:      &quic.Config{Versions: versions},
+		TLSClientConfig: testdata.GetTLSConfig(),
 	}
 	defer roundTripper.Close()
 	hclient := &http.Client{
