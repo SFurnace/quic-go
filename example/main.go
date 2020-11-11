@@ -135,7 +135,7 @@ func main() {
 	}
 	logger.SetLogTimeFormat("")
 
-	versions := protocol.SupportedVersions
+	versions := []protocol.VersionNumber{protocol.Version43}
 	if *tls {
 		versions = append([]protocol.VersionNumber{protocol.VersionTLS}, versions...)
 	}
