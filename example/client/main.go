@@ -21,24 +21,26 @@ const (
 )
 
 var (
-	verbose  bool
-	quiet    bool
-	certPath string
-	repeat   uint
-	interval uint
-	urls     []string
+	verbose   bool
+	quiet     bool
+	certPath  string
+	repeat    uint
+	interval  uint
+	timeout   uint
+	keepAlive bool
+	urls      []string
 
 	logger = utils.DefaultLogger
 )
 
 func init() {
 	flag.BoolVar(&verbose, "v", false, "verbose QUIC Connection message")
-	flag.BoolVar(&verbose, "verbose", false, "verbose QUIC Connection message")
 	flag.BoolVar(&quiet, "q", false, "don't print the data")
-	flag.BoolVar(&quiet, "quiet", false, "don't print the data")
 	flag.StringVar(&certPath, "cert", ".", "certificate directory")
 	flag.UintVar(&repeat, "repeat", 1, "repeat time of the request")
 	flag.UintVar(&interval, "interval", 1, "interval of repeat request (seconds)")
+	flag.UintVar(&timeout, "timeout", 30, "idle timeout")
+	flag.BoolVar(&keepAlive, "keep", false, "whether periodically send PING frames to keep the connection alive")
 	flag.Parse()
 
 	urls = flag.Args()
@@ -54,7 +56,9 @@ func main() {
 	certFile := filepath.Join(certPath, fullChainCertFile)
 	keyFile := filepath.Join(certPath, privkeyCertFile)
 	transport := &h2quic.RoundTripper{
-		QuicConfig:      &quic.Config{Versions: []protocol.VersionNumber{protocol.Version43}},
+		QuicConfig: &quic.Config{
+			Versions: []protocol.VersionNumber{protocol.Version43}, IdleTimeout: time.Second * time.Duration(timeout), KeepAlive: keepAlive,
+		},
 		TLSClientConfig: comm.GetTLSConfig(certFile, keyFile),
 	}
 	client := &http.Client{Transport: transport}

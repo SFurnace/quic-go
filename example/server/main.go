@@ -109,10 +109,12 @@ func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	bs := binds{}
 	flag.Var(&bs, "bind", "bind to")
-	certPath := flag.String("certpath", ".", "certificate directory")
+	certPath := flag.String("cert", ".", "certificate directory")
 	www := flag.String("www", "./www", "www data")
 	tcp := flag.Bool("tcp", false, "also listen on TCP")
 	tls := flag.Bool("tls", false, "activate support for IETF QUIC (work in progress)")
+	timeout := flag.Uint("timeout", 30, "idle timout")
+	keepAlive := flag.Bool("keep", false, "whether periodically send PING frames to keep the connection alive")
 	flag.Parse()
 
 	logger := utils.DefaultLogger
@@ -135,7 +137,7 @@ func main() {
 	http.Handle("/", http.FileServer(http.Dir(*www)))
 
 	if len(bs) == 0 {
-		bs = binds{"localhost:6121"}
+		bs = binds{"localhost:10101"}
 	}
 
 	var wg sync.WaitGroup
@@ -148,8 +150,8 @@ func main() {
 				err = h2quic.ListenAndServe(bCap, certFile, keyFile, nil)
 			} else {
 				server := h2quic.Server{
-					Server:     &http.Server{Addr: bCap, IdleTimeout: time.Second * 5},
-					QuicConfig: &quic.Config{Versions: versions},
+					Server:     &http.Server{Addr: bCap, IdleTimeout: time.Second * time.Duration(*timeout)},
+					QuicConfig: &quic.Config{Versions: versions, IdleTimeout: time.Second * time.Duration(*timeout), KeepAlive: *keepAlive},
 				}
 				err = server.ListenAndServeTLS(certFile, keyFile)
 			}
