@@ -5,7 +5,8 @@ import (
 	"flag"
 	"io"
 	"net/http"
-	"sync"
+	"path/filepath"
+	"time"
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/example/comm"
@@ -14,40 +15,56 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
 
-func main() {
-	verbose := flag.Bool("v", false, "verbose")
-	quiet := flag.Bool("q", false, "don't print the data")
-	certPath := flag.String("certpath", ".", "certificate directory")
+const (
+	fullChainCertFile = "fullchain.pem"
+	privkeyCertFile   = "privkey.pem"
+)
+
+var (
+	verbose  bool
+	quiet    bool
+	certPath string
+	repeat   uint
+	interval uint
+	urls     []string
+
+	logger = utils.DefaultLogger
+)
+
+func init() {
+	flag.BoolVar(&verbose, "v", false, "verbose QUIC Connection message")
+	flag.BoolVar(&verbose, "verbose", false, "verbose QUIC Connection message")
+	flag.BoolVar(&quiet, "q", false, "don't print the data")
+	flag.BoolVar(&quiet, "quiet", false, "don't print the data")
+	flag.StringVar(&certPath, "cert", ".", "certificate directory")
+	flag.UintVar(&repeat, "repeat", 1, "repeat time of the request")
+	flag.UintVar(&interval, "interval", 1, "interval of repeat request (seconds)")
 	flag.Parse()
-	urls := flag.Args()
 
-	certFile := *certPath + "/fullchain.pem"
-	keyFile := *certPath + "/privkey.pem"
-
-	logger := utils.DefaultLogger
-	if *verbose {
+	urls = flag.Args()
+	logger.SetLogTimeFormat("")
+	if verbose {
 		logger.SetLogLevel(utils.LogLevelDebug)
 	} else {
 		logger.SetLogLevel(utils.LogLevelInfo)
 	}
-	logger.SetLogTimeFormat("")
+}
 
-	versions := []protocol.VersionNumber{protocol.Version43}
-	roundTripper := &h2quic.RoundTripper{
-		QuicConfig:      &quic.Config{Versions: versions},
+func main() {
+	certFile := filepath.Join(certPath, fullChainCertFile)
+	keyFile := filepath.Join(certPath, privkeyCertFile)
+	transport := &h2quic.RoundTripper{
+		QuicConfig:      &quic.Config{Versions: []protocol.VersionNumber{protocol.Version43}},
 		TLSClientConfig: comm.GetTLSConfig(certFile, keyFile),
 	}
-	defer roundTripper.Close()
-	hclient := &http.Client{
-		Transport: roundTripper,
-	}
+	client := &http.Client{Transport: transport}
+	defer transport.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(len(urls))
-	for _, addr := range urls {
-		logger.Infof("GET %s", addr)
-		go func(addr string) {
-			rsp, err := hclient.Get(addr)
+	for i := uint(0); i < repeat; i++ {
+		for _, addr := range urls {
+			logger.Infof("\n\n\nGET %s", addr)
+
+			rsp, err := client.Get(addr)
 			if err != nil {
 				panic(err)
 			}
@@ -58,14 +75,14 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			if *quiet {
+			if quiet {
 				logger.Infof("Request Body: %d bytes", body.Len())
 			} else {
 				logger.Infof("Request Body:")
 				logger.Infof("%s", body.Bytes())
 			}
-			wg.Done()
-		}(addr)
+
+			time.Sleep(time.Second * time.Duration(interval))
+		}
 	}
-	wg.Wait()
 }

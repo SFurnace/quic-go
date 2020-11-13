@@ -13,6 +13,7 @@ import (
 	_ "net/http/pprof"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/h2quic"
@@ -147,7 +148,7 @@ func main() {
 				err = h2quic.ListenAndServe(bCap, certFile, keyFile, nil)
 			} else {
 				server := h2quic.Server{
-					Server:     &http.Server{Addr: bCap},
+					Server:     &http.Server{Addr: bCap, IdleTimeout: time.Second * 5},
 					QuicConfig: &quic.Config{Versions: versions},
 				}
 				err = server.ListenAndServeTLS(certFile, keyFile)
