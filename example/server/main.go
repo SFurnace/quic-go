@@ -10,14 +10,11 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
-	"path"
-	"runtime"
+	_ "net/http/pprof"
 	"strings"
 	"sync"
 
-	_ "net/http/pprof"
-
-	quic "github.com/lucas-clemente/quic-go"
+	"github.com/lucas-clemente/quic-go"
 	"github.com/lucas-clemente/quic-go/h2quic"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/utils"
@@ -101,15 +98,6 @@ func init() {
 	})
 }
 
-func getBuildDir() string {
-	_, filename, _, ok := runtime.Caller(0)
-	if !ok {
-		panic("Failed to get current frame")
-	}
-
-	return path.Dir(filename)
-}
-
 func main() {
 	// defer profile.Start().Stop()
 	go func() {
@@ -120,8 +108,8 @@ func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	bs := binds{}
 	flag.Var(&bs, "bind", "bind to")
-	certPath := flag.String("certpath", getBuildDir(), "certificate directory")
-	www := flag.String("www", "/var/www", "www data")
+	certPath := flag.String("certpath", ".", "certificate directory")
+	www := flag.String("www", "./www", "www data")
 	tcp := flag.Bool("tcp", false, "also listen on TCP")
 	tls := flag.Bool("tls", false, "activate support for IETF QUIC (work in progress)")
 	flag.Parse()
