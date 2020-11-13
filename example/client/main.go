@@ -44,7 +44,7 @@ func init() {
 	flag.Parse()
 
 	urls = flag.Args()
-	logger.SetLogTimeFormat("")
+	logger.SetLogTimeFormat("[15:04:05.000] ")
 	if verbose {
 		logger.SetLogLevel(utils.LogLevelDebug)
 	} else {
@@ -66,7 +66,7 @@ func main() {
 
 	for i := uint(0); i < repeat; i++ {
 		for _, addr := range urls {
-			logger.Infof("\n\n\nGET %s", addr)
+			logger.Infof("GET %s", addr)
 
 			rsp, err := client.Get(addr)
 			if err != nil {
@@ -86,6 +86,7 @@ func main() {
 				logger.Infof("%s", body.Bytes())
 			}
 
+			logger.Infof("\n\n\n")
 			time.Sleep(time.Second * time.Duration(interval))
 		}
 	}

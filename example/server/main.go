@@ -118,13 +118,12 @@ func main() {
 	flag.Parse()
 
 	logger := utils.DefaultLogger
-
 	if *verbose {
 		logger.SetLogLevel(utils.LogLevelDebug)
 	} else {
 		logger.SetLogLevel(utils.LogLevelInfo)
 	}
-	logger.SetLogTimeFormat("")
+	logger.SetLogTimeFormat("[15:04:05.000] ")
 
 	versions := []protocol.VersionNumber{protocol.Version43}
 	if *tls {
